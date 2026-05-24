@@ -44,35 +44,42 @@ class _ManageEmotionsPageState extends State<ManageEmotionsPage> {
     final s = context.s;
     final locale = context.read<SettingsCubit>().state.locale;
     final controller = TextEditingController();
-    final name = await showDialog<String>(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: c.surfaceContainer,
-        title: Text(
-            s.t('manage.add_to').replaceAll(
-                '{n}', EmotionTranslations.category(locale, cat.id)),
-            style: AppTypography.headlineMd(c.onSurface)),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          style: AppTypography.bodyMd(c.onSurface),
-          decoration: InputDecoration(hintText: s.t('manage.emotion_name_hint')),
+    try {
+      final name = await showDialog<String>(
+        context: context,
+        builder: (_) => AlertDialog(
+          backgroundColor: c.surfaceContainer,
+          title: Text(
+              s.t('manage.add_to').replaceAll(
+                  '{n}', EmotionTranslations.category(locale, cat.id)),
+              style: AppTypography.headlineMd(c.onSurface)),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            maxLength: 60,
+            style: AppTypography.bodyMd(c.onSurface),
+            decoration:
+                InputDecoration(hintText: s.t('manage.emotion_name_hint')),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(s.t('common.cancel'),
+                    style: AppTypography.labelSm(c.onSurfaceVariant))),
+            TextButton(
+                onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+                child: Text(s.t('common.add'),
+                    style: AppTypography.labelSm(c.primary))),
+          ],
         ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(s.t('common.cancel'),
-                  style: AppTypography.labelSm(c.onSurfaceVariant))),
-          TextButton(
-              onPressed: () => Navigator.of(context).pop(controller.text.trim()),
-              child: Text(s.t('common.add'),
-                  style: AppTypography.labelSm(c.primary))),
-        ],
-      ),
-    );
-    if (name != null && name.isNotEmpty) {
-      await _repo.addCustomEmotion(cat.id, name);
-      await _load();
+      );
+      if (name != null && name.isNotEmpty) {
+        await _repo.addCustomEmotion(cat.id, name);
+        if (!mounted) return;
+        await _load();
+      }
+    } finally {
+      controller.dispose();
     }
   }
 

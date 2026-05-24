@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
@@ -8,23 +9,34 @@ import '../../features/entries/application/entries_cubit.dart';
 import '../../features/reminders/application/reminders_cubit.dart';
 import '../../features/settings/application/settings_cubit.dart';
 
-/// Single composition root: init DI, hydrate persisted state, then run the app.
+/// Single composition root. Every step is independent — a single failure
+/// (corrupt prefs, missing tz data, denied notification permission, …) must
+/// never leave the user staring at a black screen.
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await configureDependencies();
 
-  // Make intl ready for both supported locales before any DateFormat call.
-  await initializeDateFormatting('ru', null);
-  await initializeDateFormatting('en', null);
+  await _guard('configureDependencies', configureDependencies);
 
-  // Notifications: init plugin (timezone, channels, permissions) before
-  // reminders load — RemindersCubit reschedules on load().
-  await NotificationService.instance.init();
+  await _guard('initializeDateFormatting', () async {
+    await initializeDateFormatting('ru', null);
+    await initializeDateFormatting('en', null);
+  });
 
-  // Hydrate app-scoped state before first frame.
-  await sl<SettingsCubit>().load();
-  await sl<EntriesCubit>().load();
-  await sl<RemindersCubit>().load();
+  await _guard('NotificationService.init', () async {
+    await NotificationService.instance.init();
+  });
+
+  await _guard('SettingsCubit.load', () => sl<SettingsCubit>().load());
+  await _guard('EntriesCubit.load', () => sl<EntriesCubit>().load());
+  await _guard('RemindersCubit.load', () => sl<RemindersCubit>().load());
 
   runApp(const MoodTrackerApp());
+}
+
+Future<void> _guard(String label, Future<void> Function() body) async {
+  try {
+    await body();
+  } catch (e, st) {
+    if (kDebugMode) debugPrint('bootstrap step "$label" failed: $e\n$st');
+  }
 }

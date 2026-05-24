@@ -19,9 +19,30 @@ class RemindersCubit extends Cubit<RemindersState> {
   final NotificationService _notifier;
 
   Future<void> load() async {
-    final list = await _repo.getAll();
-    emit(state.copyWith(reminders: list, loaded: true));
-    await _notifier.rescheduleAll(list);
+    final stored = await _repo.getAll();
+    // Sweep "once" reminders whose moment is already in the past: leaving
+    // them enabled would surprise the user (UI shows ON but nothing fires).
+    final now = DateTime.now();
+    var dirty = false;
+    final cleaned = <Reminder>[];
+    for (final r in stored) {
+      if (r.enabled &&
+          r.recurrence == ReminderRecurrence.once &&
+          r.anchor != null &&
+          !r.anchor!.isAfter(now)) {
+        cleaned.add(r.copyWith(enabled: false));
+        dirty = true;
+      } else {
+        cleaned.add(r);
+      }
+    }
+    if (dirty) {
+      try {
+        await _repo.saveAll(cleaned);
+      } catch (_) {/* best-effort sweep */}
+    }
+    emit(state.copyWith(reminders: cleaned, loaded: true));
+    await _notifier.rescheduleAll(cleaned);
   }
 
   Future<void> upsert(Reminder reminder) async {
@@ -47,17 +68,25 @@ class RemindersCubit extends Cubit<RemindersState> {
     await _persistAndReschedule(list);
   }
 
+  /// Persistence-first ordering: if the disk write fails we don't show a state
+  /// that diverges from what survives a restart.
   Future<void> _persistAndReschedule(List<Reminder> list) async {
-    emit(state.copyWith(reminders: list));
     await _repo.saveAll(list);
+    emit(state.copyWith(reminders: list));
     await _notifier.rescheduleAll(list);
   }
 
-  /// Generates a stable-ish numeric id (used as the notification id too).
+  /// Drop every reminder (used by Settings → Delete all data when extended).
+  Future<void> clear() async {
+    await _repo.saveAll(const []);
+    emit(state.copyWith(reminders: const []));
+    await _notifier.cancelAll();
+  }
+
+  /// Generates a 31-bit numeric id (also used as the notification id).
   int nextId() {
     final used = state.reminders.map((r) => r.id).toSet();
-    final base = DateTime.now().millisecondsSinceEpoch % 0x7fffffff;
-    var id = base;
+    var id = DateTime.now().millisecondsSinceEpoch & 0x7fffffff;
     while (used.contains(id)) {
       id = (id + 1) & 0x7fffffff;
     }

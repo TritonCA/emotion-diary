@@ -11,8 +11,27 @@ import '../domain/entities/reminder.dart';
 import 'edit_reminder_page.dart';
 
 /// Lists all user reminders with quick enable/disable + tap-to-edit.
-class RemindersPage extends StatelessWidget {
+class RemindersPage extends StatefulWidget {
   const RemindersPage({super.key});
+
+  @override
+  State<RemindersPage> createState() => _RemindersPageState();
+}
+
+class _RemindersPageState extends State<RemindersPage> {
+  bool _notificationsEnabled = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshPermission();
+  }
+
+  Future<void> _refreshPermission() async {
+    final ok = await NotificationService.instance.isNotificationsEnabled();
+    if (!mounted) return;
+    setState(() => _notificationsEnabled = ok);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,17 +51,30 @@ class RemindersPage extends StatelessWidget {
       body: BlocBuilder<RemindersCubit, RemindersState>(
         builder: (context, state) {
           final cubit = context.read<RemindersCubit>();
+          final children = <Widget>[
+            if (!_notificationsEnabled) _permissionBanner(c, s),
+          ];
           if (state.reminders.isEmpty) {
-            return _empty(context);
+            return Column(
+              children: [
+                ...children,
+                Expanded(child: _empty(context)),
+              ],
+            );
           }
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
             children: [
+              ...children,
               for (final r in state.reminders) ...[
                 _ReminderCard(
                   reminder: r,
                   onTap: () => _openEditor(context, r),
-                  onToggle: (v) => cubit.setEnabled(r.id, v),
+                  onToggle: (v) async {
+                    try {
+                      await cubit.setEnabled(r.id, v);
+                    } catch (_) {/* repo write rarely fails; rebuild reverts UI */}
+                  },
                 ),
                 const SizedBox(height: 12),
               ],
@@ -61,6 +93,28 @@ class RemindersPage extends StatelessWidget {
       ),
     );
   }
+
+  Widget _permissionBanner(AppColors c, AppStrings s) => Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: c.error.withOpacity(0.10),
+          border: Border.all(color: c.error.withOpacity(0.4), width: 0.5),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.notifications_off_outlined, color: c.error),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                s.t('reminders.permission_denied'),
+                style: AppTypography.labelSm(c.error).copyWith(height: 1.35),
+              ),
+            ),
+          ],
+        ),
+      );
 
   Widget _empty(BuildContext context) {
     final c = context.colors;
@@ -88,13 +142,11 @@ class RemindersPage extends StatelessWidget {
   }
 
   void _openEditor(BuildContext context, Reminder? r) {
-    final cubit = context.read<RemindersCubit>();
-    Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => BlocProvider<RemindersCubit>.value(
-        value: cubit,
-        child: EditReminderPage(existing: r),
-      ),
-    ));
+    Navigator.of(context)
+        .push(MaterialPageRoute<void>(
+          builder: (_) => EditReminderPage(existing: r),
+        ))
+        .then((_) => _refreshPermission());
   }
 }
 
@@ -190,6 +242,8 @@ class _ReminderCard extends StatelessWidget {
 
   String _formatNext(DateTime d) {
     String two(int v) => v.toString().padLeft(2, '0');
-    return '${two(d.day)}.${two(d.month)} ${two(d.hour)}:${two(d.minute)}';
+    final now = DateTime.now();
+    final base = '${two(d.day)}.${two(d.month)} ${two(d.hour)}:${two(d.minute)}';
+    return d.year == now.year ? base : '$base.${d.year}';
   }
 }

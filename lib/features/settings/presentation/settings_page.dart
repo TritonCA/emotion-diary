@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import '../../../core/di/injector.dart';
 import '../../../core/l10n/app_locale.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/theme/app_colors.dart';
@@ -38,16 +37,16 @@ class SettingsPage extends StatelessWidget {
         shape: Border(bottom: BorderSide(color: c.outlineVariant, width: 0.5)),
       ),
       body: BlocConsumer<SettingsCubit, SettingsState>(
-        listenWhen: (a, b) => a.message != b.message && b.message != null,
-        listener: (context, _) {
-          final cubit = context.read<SettingsCubit>();
-          final msg = cubit.pendingMessage;
+        listenWhen: (a, b) =>
+            a.messageVersion != b.messageVersion && b.message != null,
+        listener: (context, state) {
+          final msg = state.message;
           if (msg == null) return;
           final text = _translateMessage(context.s, msg);
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
             ..showSnackBar(SnackBar(content: Text(text)));
-          cubit.consumeMessage();
+          context.read<SettingsCubit>().consumeMessage();
         },
         builder: (context, state) {
           final cubit = context.read<SettingsCubit>();
@@ -99,10 +98,7 @@ class SettingsPage extends StatelessWidget {
                   label: s.t('settings.reminders.manage'),
                   trailing: _RemindersCountBadge(),
                   onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
-                    builder: (_) => BlocProvider<RemindersCubit>.value(
-                      value: sl<RemindersCubit>(),
-                      child: const RemindersPage(),
-                    ),
+                    builder: (_) => const RemindersPage(),
                   )),
                 ),
               ]),
@@ -314,29 +310,24 @@ class _RemindersCountBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return BlocProvider<RemindersCubit>.value(
-      value: sl<RemindersCubit>(),
-      child: Builder(builder: (context) {
-        final count = context.watch<RemindersCubit>().state.reminders.length;
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (count > 0)
-              Container(
-                margin: const EdgeInsets.only(right: 4),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: c.primary.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(99),
-                ),
-                child: Text('$count',
-                    style: AppTypography.labelSm(c.primary)
-                        .copyWith(fontWeight: FontWeight.w700)),
-              ),
-            Icon(Icons.chevron_right, size: 20, color: c.onSurfaceVariant),
-          ],
-        );
-      }),
+    final count = context.watch<RemindersCubit>().state.reminders.length;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (count > 0)
+          Container(
+            margin: const EdgeInsets.only(right: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: c.primary.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(99),
+            ),
+            child: Text('$count',
+                style: AppTypography.labelSm(c.primary)
+                    .copyWith(fontWeight: FontWeight.w700)),
+          ),
+        Icon(Icons.chevron_right, size: 20, color: c.onSurfaceVariant),
+      ],
     );
   }
 }

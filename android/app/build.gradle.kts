@@ -40,7 +40,7 @@ android {
     defaultConfig {
         applicationId = "com.example.mood_tracker"
         // flutter_local_notifications schedules need minSdk >= 21.
-        minSdk = maxOf(flutter.minSdkVersion, 21)
+        minSdk = if (flutter.minSdkVersion < 21) 21 else flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

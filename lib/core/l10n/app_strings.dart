@@ -14,13 +14,6 @@ class AppStrings {
     return table[key] ?? _data['en']?[key] ?? key;
   }
 
-  String tn(String key, int n) {
-    // simple plural — singular for n==1, plural otherwise (covers ru/en here).
-    final variant = n == 1 ? '$key.one' : '$key.other';
-    final raw = t(variant);
-    return raw.replaceAll('{n}', '$n');
-  }
-
   static const _data = <String, Map<String, String>>{
     'ru': _ru,
     'en': _en,
@@ -185,10 +178,10 @@ const _ru = <String, String>{
   'reminders.next_fire': 'Ближайшее: {n}',
   'reminders.delete_confirm.title': 'Удалить напоминание?',
   'reminders.delete_confirm.body': 'Уведомление больше не будет приходить.',
-
-  // Plurals
-  'plural.entries.one': 'запись',
-  'plural.entries.other': 'записей',
+  'reminders.permission_denied':
+      'В системе выключены уведомления для приложения — напоминания не придут. '
+      'Включите их в настройках Android.',
+  'reminders.save_failed': 'Не удалось сохранить напоминание',
 };
 
 const _en = <String, String>{
@@ -311,7 +304,8 @@ const _en = <String, String>{
   'reminders.next_fire': 'Next: {n}',
   'reminders.delete_confirm.title': 'Delete reminder?',
   'reminders.delete_confirm.body': 'You will no longer receive this notification.',
-
-  'plural.entries.one': 'entry',
-  'plural.entries.other': 'entries',
+  'reminders.permission_denied':
+      'Notifications are disabled for this app at the OS level — reminders '
+      "won't be delivered. Enable them in Android settings.",
+  'reminders.save_failed': 'Failed to save reminder',
 };

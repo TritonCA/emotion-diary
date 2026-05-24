@@ -1,4 +1,7 @@
 import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
+
 import '../../../../core/storage/key_value_store.dart';
 import '../../domain/entities/emotion_category.dart';
 
@@ -31,14 +34,27 @@ class EmotionCatalogDataSource {
         emotions: ['Exhausted', 'Bored', 'Apathetic', 'Drained', 'Burned out']),
   ];
 
-  Future<List<EmotionCategory>> getCategories() async {
+  Future<Map<String, List<String>>> _readCustom() async {
     final raw = await _store.getString(_customKey);
-    final custom = <String, List<String>>{};
-    if (raw != null && raw.isNotEmpty) {
-      (jsonDecode(raw) as Map<String, dynamic>).forEach((k, v) {
-        custom[k] = (v as List).cast<String>();
+    if (raw == null || raw.isEmpty) return {};
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) return {};
+      final out = <String, List<String>>{};
+      decoded.forEach((k, v) {
+        if (k is! String) return;
+        if (v is! List) return;
+        out[k] = v.whereType<String>().toList();
       });
+      return out;
+    } catch (e) {
+      if (kDebugMode) debugPrint('custom emotions parse failed: $e');
+      return {};
     }
+  }
+
+  Future<List<EmotionCategory>> getCategories() async {
+    final custom = await _readCustom();
     return _base.map((cat) {
       final extra = custom[cat.id] ?? const [];
       return extra.isEmpty ? cat : cat.copyWith(emotions: [...cat.emotions, ...extra]);
@@ -46,13 +62,7 @@ class EmotionCatalogDataSource {
   }
 
   Future<void> addCustom(String categoryId, String emotion) async {
-    final raw = await _store.getString(_customKey);
-    final map = <String, List<String>>{};
-    if (raw != null && raw.isNotEmpty) {
-      (jsonDecode(raw) as Map<String, dynamic>).forEach((k, v) {
-        map[k] = (v as List).cast<String>();
-      });
-    }
+    final map = await _readCustom();
     final list = map[categoryId] ?? <String>[];
     if (!list.contains(emotion)) list.add(emotion);
     map[categoryId] = list;

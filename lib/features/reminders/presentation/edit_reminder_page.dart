@@ -51,22 +51,52 @@ class _EditReminderPageState extends State<EditReminderPage> {
   Future<void> _save() async {
     final s = context.s;
     final cubit = context.read<RemindersCubit>();
+    final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     final text = _text.text.trim().isEmpty
         ? s.t('reminders.default_text')
         : _text.text.trim();
+    final every = _every.clamp(1, 365);
+
+    // Preserve the existing anchor when nothing schedule-relevant changed —
+    // otherwise editing just the text would reset the N-interval cadence.
+    final existing = widget.existing;
+    final recomputeAnchor = existing == null ||
+        existing.anchor == null ||
+        existing.hour != _time.hour ||
+        existing.minute != _time.minute ||
+        existing.recurrence != _rec ||
+        existing.every != every;
+    final anchor = recomputeAnchor
+        ? _computeAnchor(_time.hour, _time.minute)
+        : existing.anchor;
+
     final reminder = Reminder(
-      id: widget.existing?.id ?? cubit.nextId(),
+      id: existing?.id ?? cubit.nextId(),
       text: text,
       hour: _time.hour,
       minute: _time.minute,
       recurrence: _rec,
-      every: _every.clamp(1, 999),
+      every: every,
       enabled: _enabled,
-      anchor: widget.existing?.anchor,
+      anchor: anchor,
     );
-    await cubit.upsert(reminder);
+    try {
+      await cubit.upsert(reminder);
+    } catch (_) {
+      if (!mounted) return;
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(s.t('reminders.save_failed'))));
+      return;
+    }
     if (mounted) navigator.pop();
+  }
+
+  DateTime _computeAnchor(int hour, int minute) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day, hour, minute);
+    return today.isAfter(now) ? today : today.add(const Duration(days: 1));
   }
 
   Future<void> _delete() async {
@@ -93,8 +123,18 @@ class _EditReminderPageState extends State<EditReminderPage> {
       ),
     );
     if (ok != true || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
-    await context.read<RemindersCubit>().delete(widget.existing!.id);
+    final cubit = context.read<RemindersCubit>();
+    try {
+      await cubit.delete(widget.existing!.id);
+    } catch (_) {
+      if (!mounted) return;
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(s.t('reminders.save_failed'))));
+      return;
+    }
     if (mounted) navigator.pop();
   }
 
@@ -133,6 +173,7 @@ class _EditReminderPageState extends State<EditReminderPage> {
             controller: _text,
             maxLines: 3,
             minLines: 2,
+            maxLength: 200,
             style: AppTypography.bodyMd(c.onSurface),
             decoration: InputDecoration(
               hintText: s.t('reminders.default_text'),
@@ -300,8 +341,9 @@ class _EditReminderPageState extends State<EditReminderPage> {
                 color: _every > 1 ? c.primary : c.outline),
           ),
           IconButton(
-            onPressed: () => setState(() => _every++),
-            icon: Icon(Icons.add_circle_outline, color: c.primary),
+            onPressed: _every < 365 ? () => setState(() => _every++) : null,
+            icon: Icon(Icons.add_circle_outline,
+                color: _every < 365 ? c.primary : c.outline),
           ),
         ],
       ),
