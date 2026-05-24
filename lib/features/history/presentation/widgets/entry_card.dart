@@ -9,10 +9,12 @@ import '../../../entries/domain/entities/emotion_category.dart';
 import '../../../entries/domain/entities/mood_entry.dart';
 import '../../../settings/application/settings_cubit.dart';
 
-/// History list card: time, emotion pills, intensity bar, trigger quote.
+/// History list card: time, emotion pills with per-emotion intensity, overall
+/// intensity bar, trigger quote. Tappable when [onTap] is provided.
 class EntryCard extends StatelessWidget {
-  const EntryCard({super.key, required this.entry});
+  const EntryCard({super.key, required this.entry, this.onTap});
   final MoodEntry entry;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +22,7 @@ class EntryCard extends StatelessWidget {
     final s = context.s;
     final locale = context.watch<SettingsCubit>().state.locale;
     final isNegative = entry.valence == Valence.negative;
-    return Container(
+    final card = Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: c.surface,
@@ -44,11 +46,13 @@ class EntryCard extends StatelessWidget {
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        for (final e in entry.emotions)
+                        for (var i = 0; i < entry.emotions.length; i++)
                           _pill(
                             c,
-                            EmotionTranslations.emotion(locale, e.name),
-                            e.valence,
+                            EmotionTranslations.emotion(
+                                locale, entry.emotions[i].name),
+                            entry.emotions[i].valence,
+                            entry.intensityFor(i),
                           ),
                       ],
                     ),
@@ -88,18 +92,43 @@ class EntryCard extends StatelessWidget {
         ],
       ),
     );
+    if (onTap == null) return card;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: card,
+      ),
+    );
   }
 
-  Widget _pill(AppColors c, String name, Valence v) {
+  Widget _pill(AppColors c, String name, Valence v, int intensity) {
     final accent = v == Valence.negative ? c.outline : c.primary;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: accent.withOpacity(0.1),
+        color: accent.withOpacity(0.10),
         border: Border.all(color: accent.withOpacity(0.4), width: 0.5),
         borderRadius: BorderRadius.circular(99),
       ),
-      child: Text(name, style: AppTypography.labelSm(accent)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(name, style: AppTypography.labelSm(accent)),
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+            decoration: BoxDecoration(
+              color: accent.withOpacity(0.18),
+              borderRadius: BorderRadius.circular(99),
+            ),
+            child: Text('$intensity',
+                style: AppTypography.labelSm(accent)
+                    .copyWith(fontWeight: FontWeight.w700, fontSize: 11)),
+          ),
+        ],
+      ),
     );
   }
 

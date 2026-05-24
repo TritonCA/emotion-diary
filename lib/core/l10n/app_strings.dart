@@ -80,6 +80,12 @@ const _ru = <String, String>{
   'record.save_entry': 'Сохранить запись',
   'record.history_footer': 'История',
   'record.saved': 'Запись сохранена',
+  'record.updated': 'Запись обновлена',
+  'record.deleted': 'Запись удалена',
+  'record.edit_title': 'Редактирование',
+  'record.save_changes': 'Сохранить изменения',
+  'record.delete_confirm.title': 'Удалить запись?',
+  'record.delete_confirm.body': 'Запись будет удалена безвозвратно.',
 
   // Emotion picker
   'picker.how_are_you': 'Что вы чувствуете?',
@@ -128,6 +134,16 @@ const _ru = <String, String>{
   'settings.theme.dark': 'Тёмная',
   'settings.theme.system': 'Системная',
   'settings.language': 'Язык',
+  'settings.accent': 'Акцентный цвет',
+  'settings.accent.indigo': 'Индиго',
+  'settings.accent.teal': 'Бирюза',
+  'settings.accent.rose': 'Роза',
+  'settings.accent.amber': 'Янтарь',
+  'settings.accent.emerald': 'Изумруд',
+  'settings.accent.slate': 'Графит',
+  'settings.about': 'О приложении',
+  'settings.source_code': 'Исходный код (GitHub)',
+  'settings.open_url_failed': 'Не удалось открыть ссылку',
   'settings.reminders': 'Напоминания',
   'settings.reminders.manage': 'Управление напоминаниями',
   'settings.reminders.hint':
@@ -181,7 +197,20 @@ const _ru = <String, String>{
   'reminders.permission_denied':
       'В системе выключены уведомления для приложения — напоминания не придут. '
       'Включите их в настройках Android.',
+  'reminders.reliability':
+      'На некоторых устройствах (Xiaomi, Huawei и др.) система может убивать '
+      'фоновые задачи — уведомления иногда приходят с задержкой или не приходят '
+      'совсем. Если такое происходит, добавьте приложение в автозапуск '
+      'и снимите ограничения батареи.',
   'reminders.save_failed': 'Не удалось сохранить напоминание',
+
+  // Manage emotions
+  'manage.rename': 'Переименовать',
+  'manage.delete': 'Удалить',
+  'manage.delete_confirm': 'Удалить «{n}»?',
+
+  // Record — multi-emotion intensities
+  'record.per_emotion_intensity': 'Интенсивность по эмоциям',
 };
 
 const _en = <String, String>{
@@ -212,6 +241,12 @@ const _en = <String, String>{
   'record.save_entry': 'Save Entry',
   'record.history_footer': 'History',
   'record.saved': 'Entry saved',
+  'record.updated': 'Entry updated',
+  'record.deleted': 'Entry deleted',
+  'record.edit_title': 'Edit entry',
+  'record.save_changes': 'Save changes',
+  'record.delete_confirm.title': 'Delete entry?',
+  'record.delete_confirm.body': 'This entry will be permanently removed.',
 
   'picker.how_are_you': 'How are you feeling?',
   'picker.search_hint': 'Search emotions...',
@@ -256,6 +291,16 @@ const _en = <String, String>{
   'settings.theme.dark': 'Dark',
   'settings.theme.system': 'System',
   'settings.language': 'Language',
+  'settings.accent': 'Accent color',
+  'settings.accent.indigo': 'Indigo',
+  'settings.accent.teal': 'Teal',
+  'settings.accent.rose': 'Rose',
+  'settings.accent.amber': 'Amber',
+  'settings.accent.emerald': 'Emerald',
+  'settings.accent.slate': 'Slate',
+  'settings.about': 'About',
+  'settings.source_code': 'Source code (GitHub)',
+  'settings.open_url_failed': "Couldn't open the link",
   'settings.reminders': 'Reminders',
   'settings.reminders.manage': 'Manage reminders',
   'settings.reminders.hint':
@@ -307,5 +352,17 @@ const _en = <String, String>{
   'reminders.permission_denied':
       'Notifications are disabled for this app at the OS level — reminders '
       "won't be delivered. Enable them in Android settings.",
+  'reminders.reliability':
+      'Some Android vendors (Xiaomi, Huawei, etc.) aggressively kill '
+      "background tasks — reminders may be delayed or skipped. If that "
+      'happens, add the app to autostart and disable battery restrictions.',
   'reminders.save_failed': 'Failed to save reminder',
+
+  // Manage emotions
+  'manage.rename': 'Rename',
+  'manage.delete': 'Delete',
+  'manage.delete_confirm': 'Delete "{n}"?',
+
+  // Record — multi-emotion intensities
+  'record.per_emotion_intensity': 'Per-emotion intensity',
 };

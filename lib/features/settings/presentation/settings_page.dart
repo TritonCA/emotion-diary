@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/l10n/app_locale.dart';
 import '../../../core/l10n/app_strings.dart';
+import '../../../core/theme/app_accent.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../reminders/application/reminders_cubit.dart';
@@ -10,6 +12,8 @@ import '../../reminders/presentation/reminders_page.dart';
 import '../application/settings_cubit.dart';
 import '../application/settings_state.dart';
 import 'manage_emotions_page.dart';
+
+const _kSourceUrl = 'https://github.com/TritonCA/emotion-diary';
 
 /// Settings screen — Appearance / Language / Reminders / Data sections.
 class SettingsPage extends StatelessWidget {
@@ -88,6 +92,33 @@ class SettingsPage extends StatelessWidget {
                   ),
                   onTap: () => _pickLocale(context, cubit, state.locale),
                 ),
+                _divider(c),
+                _row(
+                  c,
+                  icon: Icons.color_lens_outlined,
+                  label: s.t('settings.accent'),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 18,
+                        height: 18,
+                        decoration: BoxDecoration(
+                          color: c.primary,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: c.outlineVariant, width: 0.5),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(s.t(state.accent.tKey),
+                          style: AppTypography.bodyMd(c.primary)
+                              .copyWith(fontWeight: FontWeight.w500)),
+                      const SizedBox(width: 4),
+                      Icon(Icons.chevron_right, size: 20, color: c.onSurfaceVariant),
+                    ],
+                  ),
+                  onTap: () => _pickAccent(context, cubit, state.accent),
+                ),
               ]),
               const SizedBox(height: 40),
               _sectionHeader(c, s.t('settings.reminders')),
@@ -144,6 +175,18 @@ class SettingsPage extends StatelessWidget {
                   label: s.t('settings.delete_all'),
                   danger: true,
                   onTap: state.busy ? null : () => _confirmDelete(context, cubit),
+                ),
+              ]),
+              const SizedBox(height: 40),
+              _sectionHeader(c, s.t('settings.about')),
+              _group(c, [
+                _row(
+                  c,
+                  icon: Icons.code,
+                  label: s.t('settings.source_code'),
+                  trailing: Icon(Icons.open_in_new,
+                      size: 18, color: c.onSurfaceVariant),
+                  onTap: () => _openUrl(context, _kSourceUrl),
                 ),
               ]),
               const SizedBox(height: 40),
@@ -205,6 +248,59 @@ class SettingsPage extends StatelessWidget {
       ),
     );
     if (picked != null) cubit.setThemeMode(picked);
+  }
+
+  Future<void> _pickAccent(
+      BuildContext context, SettingsCubit cubit, AppAccent current) async {
+    final c = context.colors;
+    final s = context.s;
+    final picked = await showModalBottomSheet<AppAccent>(
+      context: context,
+      backgroundColor: c.surface,
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final a in AppAccent.values)
+                ListTile(
+                  leading: Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      color: a.palette.darkPrimary,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: c.outlineVariant, width: 0.5),
+                    ),
+                  ),
+                  title: Text(s.t(a.tKey),
+                      style: AppTypography.bodyLg(c.onSurface)),
+                  trailing: a == current
+                      ? Icon(Icons.check, color: c.primary)
+                      : null,
+                  onTap: () => Navigator.of(context).pop(a),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (picked != null) cubit.setAccent(picked);
+  }
+
+  Future<void> _openUrl(BuildContext context, String url) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final s = context.s;
+    try {
+      final uri = Uri.parse(url);
+      final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!ok) throw Exception('launchUrl returned false');
+    } catch (_) {
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(s.t('settings.open_url_failed'))));
+    }
   }
 
   Future<void> _pickLocale(

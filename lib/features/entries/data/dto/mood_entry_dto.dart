@@ -7,31 +7,42 @@ class MoodEntryDto {
     required this.emotions,
     required this.intensity,
     required this.trigger,
+    this.intensities,
   });
 
   final String id;
   final String timestamp; // ISO-8601
   final List<EmotionDto> emotions;
   final int intensity;
+  /// Optional in JSON for backward compatibility. When null, readers should
+  /// synthesize a list filled with [intensity].
+  final List<int>? intensities;
   final String trigger;
 
   Map<String, dynamic> toJson() => {
         'id': id,
         'timestamp': timestamp,
         'intensity': intensity,
+        if (intensities != null) 'intensities': intensities,
         'trigger': trigger,
         'emotions': emotions.map((e) => e.toJson()).toList(),
       };
 
-  factory MoodEntryDto.fromJson(Map<String, dynamic> json) => MoodEntryDto(
-        id: json['id'] as String,
-        timestamp: json['timestamp'] as String,
-        intensity: (json['intensity'] as num).toInt(),
-        trigger: (json['trigger'] as String?) ?? '',
-        emotions: ((json['emotions'] as List?) ?? const [])
-            .map((e) => EmotionDto.fromJson(e as Map<String, dynamic>))
-            .toList(),
-      );
+  factory MoodEntryDto.fromJson(Map<String, dynamic> json) {
+    final intensities = (json['intensities'] as List?)
+        ?.map((e) => (e as num).toInt())
+        .toList();
+    return MoodEntryDto(
+      id: json['id'] as String,
+      timestamp: json['timestamp'] as String,
+      intensity: (json['intensity'] as num).toInt(),
+      intensities: intensities,
+      trigger: (json['trigger'] as String?) ?? '',
+      emotions: ((json['emotions'] as List?) ?? const [])
+          .map((e) => EmotionDto.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
 }
 
 class EmotionDto {

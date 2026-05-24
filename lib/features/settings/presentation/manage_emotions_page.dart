@@ -10,8 +10,8 @@ import '../../entries/domain/entities/emotion_category.dart';
 import '../../entries/domain/repositories/emotion_catalog_repository.dart';
 import '../application/settings_cubit.dart';
 
-/// Lists the emotion taxonomy and lets the user append custom emotions
-/// to a category (persisted via the catalog repository).
+/// Lists the emotion taxonomy and lets the user add, rename or delete
+/// entries. Each chip is tappable → opens an edit sheet.
 class ManageEmotionsPage extends StatefulWidget {
   const ManageEmotionsPage({super.key});
 
@@ -39,20 +39,125 @@ class _ManageEmotionsPageState extends State<ManageEmotionsPage> {
     });
   }
 
+  String _displayLabel(String name) {
+    // Original base names get translated; user-modified strings are shown as-is.
+    final locale = context.read<SettingsCubit>().state.locale;
+    return EmotionTranslations.emotion(locale, name);
+  }
+
   Future<void> _addEmotion(EmotionCategory cat) async {
-    final c = context.colors;
     final s = context.s;
     final locale = context.read<SettingsCubit>().state.locale;
-    final controller = TextEditingController();
+    final name = await _textPrompt(
+      title: s.t('manage.add_to').replaceAll(
+          '{n}', EmotionTranslations.category(locale, cat.id)),
+      initial: '',
+      action: s.t('common.add'),
+    );
+    if (name == null || name.isEmpty) return;
+    await _repo.addCustomEmotion(cat.id, name);
+    await _load();
+  }
+
+  Future<void> _editEmotion(EmotionCategory cat, String emotion) async {
+    final s = context.s;
+    final c = context.colors;
+    final action = await showModalBottomSheet<_ChipAction>(
+      context: context,
+      backgroundColor: c.surface,
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Row(
+                children: [
+                  Icon(Icons.tune, color: c.primary, size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      _displayLabel(emotion),
+                      style: AppTypography.headlineMd(c.onSurface),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 4),
+            ListTile(
+              leading: Icon(Icons.edit_outlined, color: c.onSurface),
+              title: Text(s.t('manage.rename'),
+                  style: AppTypography.bodyLg(c.onSurface)),
+              onTap: () => Navigator.of(context).pop(_ChipAction.rename),
+            ),
+            ListTile(
+              leading: Icon(Icons.delete_outline, color: c.error),
+              title: Text(s.t('manage.delete'),
+                  style: AppTypography.bodyLg(c.error)),
+              onTap: () => Navigator.of(context).pop(_ChipAction.delete),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (action == null || !mounted) return;
+    if (action == _ChipAction.rename) {
+      final next = await _textPrompt(
+        title: s.t('manage.rename'),
+        initial: emotion,
+        action: s.t('common.save'),
+      );
+      if (next == null || next.isEmpty || next == emotion) return;
+      await _repo.renameEmotion(cat.id, emotion, next);
+      await _load();
+    } else {
+      final confirmed = await _confirmDelete(emotion);
+      if (confirmed != true) return;
+      await _repo.removeEmotion(cat.id, emotion);
+      await _load();
+    }
+  }
+
+  Future<bool?> _confirmDelete(String emotion) async {
+    final c = context.colors;
+    final s = context.s;
+    return showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: c.surfaceContainer,
+        title: Text(
+            s.t('manage.delete_confirm').replaceAll('{n}', _displayLabel(emotion)),
+            style: AppTypography.headlineMd(c.onSurface)),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(s.t('common.cancel'),
+                  style: AppTypography.labelSm(c.onSurfaceVariant))),
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(s.t('common.delete'),
+                  style: AppTypography.labelSm(c.error))),
+        ],
+      ),
+    );
+  }
+
+  Future<String?> _textPrompt({
+    required String title,
+    required String initial,
+    required String action,
+  }) async {
+    final c = context.colors;
+    final s = context.s;
+    final controller = TextEditingController(text: initial);
     try {
-      final name = await showDialog<String>(
+      return await showDialog<String>(
         context: context,
         builder: (_) => AlertDialog(
           backgroundColor: c.surfaceContainer,
-          title: Text(
-              s.t('manage.add_to').replaceAll(
-                  '{n}', EmotionTranslations.category(locale, cat.id)),
-              style: AppTypography.headlineMd(c.onSurface)),
+          title: Text(title, style: AppTypography.headlineMd(c.onSurface)),
           content: TextField(
             controller: controller,
             autofocus: true,
@@ -68,16 +173,10 @@ class _ManageEmotionsPageState extends State<ManageEmotionsPage> {
                     style: AppTypography.labelSm(c.onSurfaceVariant))),
             TextButton(
                 onPressed: () => Navigator.of(context).pop(controller.text.trim()),
-                child: Text(s.t('common.add'),
-                    style: AppTypography.labelSm(c.primary))),
+                child: Text(action, style: AppTypography.labelSm(c.primary))),
           ],
         ),
       );
-      if (name != null && name.isNotEmpty) {
-        await _repo.addCustomEmotion(cat.id, name);
-        if (!mounted) return;
-        await _load();
-      }
     } finally {
       controller.dispose();
     }
@@ -119,17 +218,9 @@ class _ManageEmotionsPageState extends State<ManageEmotionsPage> {
                           runSpacing: 8,
                           children: [
                             for (final e in cat.emotions)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: c.surfaceContainer,
-                                  borderRadius: BorderRadius.circular(99),
-                                  border: Border.all(color: c.outlineVariant, width: 0.5),
-                                ),
-                                child: Text(
-                                    EmotionTranslations.emotion(locale, e),
-                                    style: AppTypography.labelSm(c.onSurface)),
+                              _EmotionChip(
+                                label: EmotionTranslations.emotion(locale, e),
+                                onTap: () => _editEmotion(cat, e),
                               ),
                             ActionChip(
                               avatar: Icon(Icons.add, size: 16, color: c.primary),
@@ -146,6 +237,39 @@ class _ManageEmotionsPageState extends State<ManageEmotionsPage> {
                   ),
               ],
             ),
+    );
+  }
+}
+
+enum _ChipAction { rename, delete }
+
+class _EmotionChip extends StatelessWidget {
+  const _EmotionChip({required this.label, required this.onTap});
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return InkWell(
+      borderRadius: BorderRadius.circular(99),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: c.surfaceContainer,
+          borderRadius: BorderRadius.circular(99),
+          border: Border.all(color: c.outlineVariant, width: 0.5),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(label, style: AppTypography.labelSm(c.onSurface)),
+            const SizedBox(width: 6),
+            Icon(Icons.more_horiz, size: 14, color: c.onSurfaceVariant),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -4,6 +4,8 @@ import '../entities/mood_entry.dart';
 abstract interface class EntriesRepository {
   Future<List<MoodEntry>> getAll();
   Future<void> add(MoodEntry entry);
+  Future<void> update(MoodEntry entry);
+  Future<void> delete(String id);
   Future<void> deleteAll();
   Future<void> replaceAll(List<MoodEntry> entries);
 }

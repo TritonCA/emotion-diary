@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../core/widgets/app_top_bar.dart';
+import '../../record/presentation/record_page.dart';
 import '../../settings/application/settings_cubit.dart';
 import '../application/history_cubit.dart';
 import '../application/history_state.dart';
@@ -62,7 +63,14 @@ class _HistoryView extends StatelessWidget {
                           .copyWith(letterSpacing: 1.5)),
                   const SizedBox(height: 16),
                   for (final entry in group.entries) ...[
-                    EntryCard(entry: entry),
+                    EntryCard(
+                      entry: entry,
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => RecordPage(existing: entry),
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 16),
                   ],
                   const SizedBox(height: 24),

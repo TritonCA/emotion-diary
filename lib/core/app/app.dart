@@ -25,15 +25,18 @@ class MoodTrackerApp extends StatelessWidget {
         BlocProvider<RemindersCubit>.value(value: sl<RemindersCubit>()),
       ],
       child: BlocBuilder<SettingsCubit, SettingsState>(
-        buildWhen: (a, b) => a.themeMode != b.themeMode || a.locale != b.locale,
+        buildWhen: (a, b) =>
+            a.themeMode != b.themeMode ||
+            a.locale != b.locale ||
+            a.accent != b.accent,
         builder: (context, state) {
           return AppStringsScope(
             locale: state.locale,
             child: MaterialApp(
               title: 'Mood Tracker',
               debugShowCheckedModeBanner: false,
-              theme: AppTheme.light(),
-              darkTheme: AppTheme.dark(),
+              theme: AppTheme.light(state.accent),
+              darkTheme: AppTheme.dark(state.accent),
               themeMode: switch (state.themeMode) {
                 AppThemeMode.light => ThemeMode.light,
                 AppThemeMode.dark => ThemeMode.dark,

@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/l10n/app_locale.dart';
 import '../../../core/storage/key_value_store.dart';
+import '../../../core/theme/app_accent.dart';
 import '../../entries/application/entries_cubit.dart';
 import '../../entries/domain/use_cases/delete_all_entries.dart';
 import '../../entries/domain/use_cases/export_entries_csv.dart';
@@ -31,17 +32,20 @@ class SettingsCubit extends Cubit<SettingsState> {
 
   static const _themeKey = 'settings.theme';
   static const _localeKey = 'settings.locale';
+  static const _accentKey = 'settings.accent';
   static const _legacyDailyPromptKey = 'settings.dailyPrompt';
 
   Future<void> load() async {
     final theme = await _store.getString(_themeKey);
     final locale = await _store.getString(_localeKey);
+    final accent = await _store.getString(_accentKey);
     emit(state.copyWith(
       themeMode: AppThemeMode.values.firstWhere(
         (m) => m.name == theme,
         orElse: () => AppThemeMode.dark,
       ),
       locale: AppLocale.fromCode(locale),
+      accent: AppAccentX.fromCode(accent),
     ));
     // One-time cleanup of an obsolete pref key. Best-effort.
     try {
@@ -64,6 +68,11 @@ class SettingsCubit extends Cubit<SettingsState> {
   Future<void> setLocale(AppLocale locale) async {
     emit(state.copyWith(locale: locale));
     await _store.setString(_localeKey, locale.code);
+  }
+
+  Future<void> setAccent(AppAccent accent) async {
+    emit(state.copyWith(accent: accent));
+    await _store.setString(_accentKey, accent.name);
   }
 
   Future<void> exportCsv() async {

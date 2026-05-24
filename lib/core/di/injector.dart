@@ -15,9 +15,11 @@ import '../../features/entries/domain/repositories/entries_csv_gateway.dart';
 import '../../features/entries/domain/repositories/emotion_catalog_repository.dart';
 import '../../features/entries/domain/repositories/entries_repository.dart';
 import '../../features/entries/domain/use_cases/delete_all_entries.dart';
+import '../../features/entries/domain/use_cases/delete_entry.dart';
 import '../../features/entries/domain/use_cases/export_entries_csv.dart';
 import '../../features/entries/domain/use_cases/import_entries_csv.dart';
 import '../../features/entries/domain/use_cases/save_entry.dart';
+import '../../features/entries/domain/use_cases/update_entry.dart';
 
 import '../../features/record/application/record_cubit.dart';
 import '../../features/history/application/history_cubit.dart';
@@ -51,6 +53,8 @@ Future<void> configureDependencies() async {
 
   // --- use cases ---
   sl.registerLazySingleton(() => SaveEntry(sl()));
+  sl.registerLazySingleton(() => UpdateEntry(sl()));
+  sl.registerLazySingleton(() => DeleteEntry(sl()));
   sl.registerLazySingleton(() => DeleteAllEntries(sl()));
   sl.registerLazySingleton(() => ExportEntriesCsv(sl(), sl()));
   sl.registerLazySingleton(() => ImportEntriesCsv(sl(), sl()));
@@ -73,6 +77,8 @@ Future<void> configureDependencies() async {
   // --- per-screen view models (factories; all share the EntriesCubit singleton) ---
   sl.registerFactory(() => RecordCubit(
         saveEntry: sl(),
+        updateEntry: sl(),
+        deleteEntry: sl(),
         catalogRepo: sl(),
         entriesCubit: sl(),
       ));

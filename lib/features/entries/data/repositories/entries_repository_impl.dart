@@ -23,6 +23,25 @@ class EntriesRepositoryImpl implements EntriesRepository {
   }
 
   @override
+  Future<void> update(MoodEntry entry) async {
+    final dtos = await _local.readAll();
+    final idx = dtos.indexWhere((d) => d.id == entry.id);
+    if (idx == -1) {
+      dtos.add(MoodEntryMapper.toDto(entry));
+    } else {
+      dtos[idx] = MoodEntryMapper.toDto(entry);
+    }
+    await _local.writeAll(dtos);
+  }
+
+  @override
+  Future<void> delete(String id) async {
+    final dtos = await _local.readAll();
+    dtos.removeWhere((d) => d.id == id);
+    await _local.writeAll(dtos);
+  }
+
+  @override
   Future<void> deleteAll() => _local.clear();
 
   @override

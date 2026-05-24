@@ -53,6 +53,7 @@ class _RemindersPageState extends State<RemindersPage> {
           final cubit = context.read<RemindersCubit>();
           final children = <Widget>[
             if (!_notificationsEnabled) _permissionBanner(c, s),
+            _reliabilityBanner(c, s),
           ];
           if (state.reminders.isEmpty) {
             return Column(
@@ -93,6 +94,29 @@ class _RemindersPageState extends State<RemindersPage> {
       ),
     );
   }
+
+  Widget _reliabilityBanner(AppColors c, AppStrings s) => Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: c.tertiary.withOpacity(0.10),
+          border: Border.all(color: c.tertiary.withOpacity(0.4), width: 0.5),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.info_outline, color: c.tertiary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                s.t('reminders.reliability'),
+                style: AppTypography.labelSm(c.onSurfaceVariant)
+                    .copyWith(height: 1.35),
+              ),
+            ),
+          ],
+        ),
+      );
 
   Widget _permissionBanner(AppColors c, AppStrings s) => Container(
         margin: const EdgeInsets.only(bottom: 16),

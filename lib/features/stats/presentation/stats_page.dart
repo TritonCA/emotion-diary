@@ -62,7 +62,9 @@ class _StatsView extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
             children: [
               _periodSelector(context, c, state, cubit),
-              const SizedBox(height: 40),
+              const SizedBox(height: 12),
+              _categoryFilter(context, c, state, cubit),
+              const SizedBox(height: 32),
               _metricGrid(context, st),
               const SizedBox(height: 40),
               _sectionTitle(c, s.t('stats.intensity_trend'),
@@ -100,6 +102,55 @@ class _StatsView extends StatelessWidget {
             const SizedBox(width: 8),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _categoryFilter(
+      BuildContext context, AppColors c, StatsState state, StatsCubit cubit) {
+    final s = context.s;
+    final locale = context.watch<SettingsCubit>().state.locale;
+    String label(String? id) {
+      if (id == null) return s.t('history.all_categories');
+      return EmotionTranslations.category(locale, id);
+    }
+
+    if (state.availableCategories.isEmpty) return const SizedBox.shrink();
+    final selected = state.categoryFilter != null;
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: PopupMenuButton<String?>(
+        onSelected: (v) => cubit.setCategoryFilter(v == '__all__' ? null : v),
+        color: c.surfaceContainer,
+        itemBuilder: (_) => [
+          PopupMenuItem(value: '__all__', child: Text(label(null))),
+          for (final id in state.availableCategories)
+            PopupMenuItem(value: id, child: Text(label(id))),
+        ],
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: selected ? c.primary.withOpacity(0.10) : c.surface,
+            border: Border.all(
+                color: selected ? c.primary : c.outlineVariant,
+                width: selected ? 1 : 0.5),
+            borderRadius: BorderRadius.circular(99),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.filter_list,
+                  size: 16, color: selected ? c.primary : c.onSurfaceVariant),
+              const SizedBox(width: 6),
+              Text(label(state.categoryFilter),
+                  style: AppTypography.labelSm(
+                      selected ? c.primary : c.onSurfaceVariant)),
+              const SizedBox(width: 4),
+              Icon(Icons.keyboard_arrow_down,
+                  size: 16, color: selected ? c.primary : c.onSurfaceVariant),
+            ],
+          ),
+        ),
       ),
     );
   }

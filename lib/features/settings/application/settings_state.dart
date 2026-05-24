@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../../core/l10n/app_locale.dart';
+import '../../../core/theme/app_accent.dart';
 
 enum AppThemeMode { light, dark, system }
 
@@ -26,6 +27,7 @@ class SettingsState extends Equatable {
   const SettingsState({
     this.themeMode = AppThemeMode.dark,
     this.locale = AppLocale.ru,
+    this.accent = AppAccent.indigo,
     this.busy = false,
     this.message,
     this.messageVersion = 0,
@@ -33,6 +35,7 @@ class SettingsState extends Equatable {
 
   final AppThemeMode themeMode;
   final AppLocale locale;
+  final AppAccent accent;
   final bool busy;
   final SettingsMessage? message;
   /// Bumped on every new message so identical-kind messages still trigger
@@ -42,6 +45,7 @@ class SettingsState extends Equatable {
   SettingsState copyWith({
     AppThemeMode? themeMode,
     AppLocale? locale,
+    AppAccent? accent,
     bool? busy,
     SettingsMessage? message,
     bool clearMessage = false,
@@ -50,6 +54,7 @@ class SettingsState extends Equatable {
     return SettingsState(
       themeMode: themeMode ?? this.themeMode,
       locale: locale ?? this.locale,
+      accent: accent ?? this.accent,
       busy: busy ?? this.busy,
       message: clearMessage ? null : (message ?? this.message),
       messageVersion:
@@ -58,5 +63,6 @@ class SettingsState extends Equatable {
   }
 
   @override
-  List<Object?> get props => [themeMode, locale, busy, message, messageVersion];
+  List<Object?> get props =>
+      [themeMode, locale, accent, busy, message, messageVersion];
 }

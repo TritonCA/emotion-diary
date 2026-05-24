@@ -12,4 +12,12 @@ class EmotionCatalogRepositoryImpl implements EmotionCatalogRepository {
   @override
   Future<void> addCustomEmotion(String categoryId, String emotion) =>
       _ds.addCustom(categoryId, emotion);
+
+  @override
+  Future<void> renameEmotion(String categoryId, String oldName, String newName) =>
+      _ds.renameEmotion(categoryId, oldName, newName);
+
+  @override
+  Future<void> removeEmotion(String categoryId, String emotion) =>
+      _ds.removeEmotion(categoryId, emotion);
 }

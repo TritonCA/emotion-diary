@@ -3,7 +3,8 @@ import '../../../entries/domain/entities/emotion.dart';
 import '../../../entries/domain/entities/emotion_category.dart';
 
 /// Pulsing concentric circles whose size, speed and color react to the
-/// intensity + dominant valence — a direct port of the HTML `updateVizStyles`.
+/// intensity + dominant valence. Color is interpolated continuously across
+/// the 0..10 range (no sharp "always purple at 5" jump).
 class IntensityViz extends StatefulWidget {
   const IntensityViz({super.key, required this.intensity, required this.selected});
   final int intensity;
@@ -53,26 +54,46 @@ class _IntensityVizState extends State<IntensityViz>
     return Valence.neutral;
   }
 
-  List<Color> _palette() {
-    final v = widget.intensity;
+  /// HSL-driven palette: hue is locked to the dominant valence; saturation
+  /// and lightness scale with intensity so 0 looks airy/pale and 10 looks
+  /// deep/saturated. Returns three tones for the concentric circles
+  /// (back -> mid -> front).
+  List<Color> _palette(BuildContext context) {
+    final t = (widget.intensity / 10.0).clamp(0.0, 1.0);
     final dom = _dominant();
-    if (v <= 3) {
-      return const [Color(0xFFFFFFFF), Color(0xFFE9DDFF), Color(0xFFF5F5F5)];
-    }
-    if (v >= 7 && dom == Valence.positive) {
-      return const [Color(0xFF10B981), Color(0xFF059669), Color(0xFF34D399)];
-    }
-    if (v >= 7 && dom == Valence.negative) {
-      return const [Color(0xFFEF4444), Color(0xFF991B1B), Color(0xFFDC2626)];
-    }
-    return const [Color(0xFF8B8BF0), Color(0xFF6750A4), Color(0xFFCFBCFF)];
+
+    // Hue per valence. Neutral picks up the current theme accent so the
+    // visualization stays consistent with the user's color choice.
+    final double hue = switch (dom) {
+      Valence.positive => 152, // emerald
+      Valence.negative => 6,   // warm red-orange
+      Valence.neutral => HSLColor.fromColor(Theme.of(context).colorScheme.primary).hue,
+    };
+
+    // Smooth curves — at v=0 the circle is almost the surface tint, at v=10
+    // it's a rich, saturated tone of the chosen hue.
+    final sat = (0.20 + 0.65 * t).clamp(0.0, 1.0);
+    final light = (0.85 - 0.35 * t).clamp(0.0, 1.0);
+
+    Color tone(double dl, double ds) => HSLColor.fromAHSL(
+          1,
+          hue,
+          (sat + ds).clamp(0.05, 1.0),
+          (light + dl).clamp(0.0, 1.0),
+        ).toColor();
+
+    return [
+      tone(-0.12, 0.05), // back — darkest
+      tone(0.0, 0.0),    // mid
+      tone(0.10, -0.05), // front — lightest
+    ];
   }
 
   @override
   Widget build(BuildContext context) {
     final base = 40.0 + widget.intensity * 12.0;
     final sizes = [base + 70, base + 30, base]; // back -> front
-    final colors = _palette();
+    final colors = _palette(context);
     return SizedBox(
       height: 200,
       child: AnimatedBuilder(
@@ -83,8 +104,7 @@ class _IntensityVizState extends State<IntensityViz>
             alignment: Alignment.center,
             children: [
               for (var i = 0; i < 3; i++)
-                _circle(sizes[i], colors[2 - i], 0.3 + 0.3 * t,
-                    0.95 + 0.10 * t),
+                _circle(sizes[i], colors[i], 0.3 + 0.3 * t, 0.95 + 0.10 * t),
             ],
           );
         },

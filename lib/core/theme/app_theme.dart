@@ -1,14 +1,27 @@
 import 'package:flutter/material.dart';
-import 'app_colors.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+import 'app_accent.dart';
+import 'app_colors.dart';
 
 /// Builds light/dark [ThemeData] from the [AppColors] tokens.
 /// Radius language from DESIGN.md: cards 12px, inputs 10px, pills full.
 class AppTheme {
   const AppTheme._();
 
-  static ThemeData light() => _build(AppColors.light, Brightness.light);
-  static ThemeData dark() => _build(AppColors.dark, Brightness.dark);
+  static ThemeData light(AppAccent accent) {
+    final p = accent.palette;
+    final c = AppColors.light
+        .copyWith(primary: p.lightPrimary, onPrimary: p.lightOnPrimary);
+    return _build(c, Brightness.light);
+  }
+
+  static ThemeData dark(AppAccent accent) {
+    final p = accent.palette;
+    final c = AppColors.dark
+        .copyWith(primary: p.darkPrimary, onPrimary: p.darkOnPrimary);
+    return _build(c, Brightness.dark);
+  }
 
   static ThemeData _build(AppColors c, Brightness brightness) {
     final base = ThemeData(brightness: brightness, useMaterial3: true);

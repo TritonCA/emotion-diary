@@ -10,10 +10,18 @@ import '../../domain/repositories/entries_csv_gateway.dart';
 
 /// All file-system / share / pick side effects for CSV live here (ARCH:
 /// side effects centralized in data/services, never in the UI).
+///
+/// Emotions are encoded as `name|categoryId|valence|intensity` joined by `;`.
+/// The trailing `|intensity` is optional — rows produced by older app
+/// versions (without per-emotion intensities) are still parsed correctly,
+/// falling back to the row-level intensity for each emotion.
 class CsvService implements EntriesCsvGateway {
   const CsvService();
 
   static const _headers = ['id', 'timestamp', 'emotions', 'intensity', 'trigger'];
+
+  String _encodeEmotion(Emotion e, int intensity) =>
+      '${e.name}|${e.categoryId}|${e.valence.name}|$intensity';
 
   String _build(List<MoodEntry> entries) {
     final rows = <List<dynamic>>[
@@ -21,7 +29,10 @@ class CsvService implements EntriesCsvGateway {
       ...entries.map((e) => [
             e.id,
             e.timestamp.toIso8601String(),
-            e.emotions.map((x) => '${x.name}|${x.categoryId}|${x.valence.name}').join(';'),
+            [
+              for (var i = 0; i < e.emotions.length; i++)
+                _encodeEmotion(e.emotions[i], e.intensityFor(i)),
+            ].join(';'),
             e.intensity,
             e.trigger,
           ]),
@@ -62,32 +73,50 @@ class CsvService implements EntriesCsvGateway {
     for (var i = 1; i < rows.length; i++) {
       final r = rows[i];
       if (r.length < 5) continue;
+      final rowIntensity = int.tryParse(r[3].toString().trim()) ?? 0;
+      final parsed = _parseEmotions(r[2].toString(), rowIntensity);
       out.add(MoodEntry(
         id: r[0].toString().isEmpty
             ? DateTime.now().microsecondsSinceEpoch.toString()
             : r[0].toString(),
         timestamp: DateTime.tryParse(r[1].toString()) ?? DateTime.now(),
-        emotions: _parseEmotions(r[2].toString()),
-        intensity: int.tryParse(r[3].toString().trim()) ?? 0,
+        emotions: parsed.emotions,
+        intensities: parsed.intensities,
+        intensity: rowIntensity,
         trigger: r[4].toString(),
       ));
     }
     return out;
   }
 
-  List<Emotion> _parseEmotions(String raw) {
-    if (raw.trim().isEmpty) return [];
-    return raw.split(';').where((s) => s.trim().isNotEmpty).map((token) {
+  _ParsedEmotions _parseEmotions(String raw, int fallbackIntensity) {
+    if (raw.trim().isEmpty) {
+      return const _ParsedEmotions(emotions: [], intensities: []);
+    }
+    final emotions = <Emotion>[];
+    final intensities = <int>[];
+    for (final token in raw.split(';').where((s) => s.trim().isNotEmpty)) {
       final parts = token.split('|');
       final valence = parts.length > 2
           ? Valence.values.firstWhere((v) => v.name == parts[2],
               orElse: () => Valence.neutral)
           : Valence.neutral;
-      return Emotion(
+      final intensity = parts.length > 3
+          ? (int.tryParse(parts[3].trim()) ?? fallbackIntensity)
+          : fallbackIntensity;
+      emotions.add(Emotion(
         name: parts[0],
         categoryId: parts.length > 1 ? parts[1] : '',
         valence: valence,
-      );
-    }).toList();
+      ));
+      intensities.add(intensity.clamp(0, 10));
+    }
+    return _ParsedEmotions(emotions: emotions, intensities: intensities);
   }
+}
+
+class _ParsedEmotions {
+  const _ParsedEmotions({required this.emotions, required this.intensities});
+  final List<Emotion> emotions;
+  final List<int> intensities;
 }
