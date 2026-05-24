@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/l10n/app_strings.dart';
+import '../../../../core/l10n/emotion_translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../entries/domain/entities/emotion_category.dart';
 import '../../../entries/domain/entities/mood_entry.dart';
+import '../../../settings/application/settings_cubit.dart';
 
 /// History list card: time, emotion pills, intensity bar, trigger quote.
 class EntryCard extends StatelessWidget {
@@ -13,6 +17,8 @@ class EntryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final s = context.s;
+    final locale = context.watch<SettingsCubit>().state.locale;
     final isNegative = entry.valence == Valence.negative;
     return Container(
       padding: const EdgeInsets.all(16),
@@ -38,7 +44,12 @@ class EntryCard extends StatelessWidget {
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        for (final e in entry.emotions) _pill(c, e.name, e.valence),
+                        for (final e in entry.emotions)
+                          _pill(
+                            c,
+                            EmotionTranslations.emotion(locale, e.name),
+                            e.valence,
+                          ),
                       ],
                     ),
                   ],
@@ -47,7 +58,7 @@ class EntryCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text('Intensity ${entry.intensity}',
+                  Text('${s.t('history.intensity_label')} ${entry.intensity}',
                       style: AppTypography.labelSm(c.outline)),
                   const SizedBox(height: 6),
                   _intensityBar(c, entry.intensity),

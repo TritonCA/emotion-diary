@@ -1,6 +1,15 @@
 import 'package:equatable/equatable.dart';
 import '../domain/entities/mood_stats.dart';
 
+extension StatsPeriodKey on StatsPeriod {
+  String get tKey => switch (this) {
+        StatsPeriod.week => 'stats.period.week',
+        StatsPeriod.month => 'stats.period.month',
+        StatsPeriod.year => 'stats.period.year',
+        StatsPeriod.all => 'stats.period.all',
+      };
+}
+
 class StatsState extends Equatable {
   const StatsState({
     this.period = StatsPeriod.week,

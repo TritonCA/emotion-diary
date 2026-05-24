@@ -3,22 +3,24 @@ import '../../entries/domain/entities/mood_entry.dart';
 
 enum HistoryPeriod { last7, last30, last365, all }
 
-extension HistoryPeriodLabel on HistoryPeriod {
-  String get label => switch (this) {
-        HistoryPeriod.last7 => 'Last 7 days',
-        HistoryPeriod.last30 => 'Last 30 days',
-        HistoryPeriod.last365 => 'Last year',
-        HistoryPeriod.all => 'All time',
+extension HistoryPeriodKey on HistoryPeriod {
+  /// Translation key (no hard-coded English label here — let the UI translate).
+  String get tKey => switch (this) {
+        HistoryPeriod.last7 => 'history.period.last7',
+        HistoryPeriod.last30 => 'history.period.last30',
+        HistoryPeriod.last365 => 'history.period.last365',
+        HistoryPeriod.all => 'history.period.all',
       };
 }
 
 /// UiModel: a day bucket ("Today"/"Yesterday"/date) with its entries.
+/// `dateKey` is YYYYMMDD; the UI formats it with the current locale.
 class HistoryGroup extends Equatable {
-  const HistoryGroup({required this.label, required this.entries});
-  final String label;
+  const HistoryGroup({required this.date, required this.entries});
+  final DateTime date;
   final List<MoodEntry> entries;
   @override
-  List<Object?> get props => [label, entries];
+  List<Object?> get props => [date, entries];
 }
 
 class HistoryState extends Equatable {

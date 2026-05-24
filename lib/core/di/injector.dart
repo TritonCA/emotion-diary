@@ -1,6 +1,7 @@
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../notifications/notification_service.dart';
 import '../storage/key_value_store.dart';
 import '../storage/shared_prefs_store.dart';
 
@@ -23,6 +24,9 @@ import '../../features/history/application/history_cubit.dart';
 import '../../features/stats/application/stats_cubit.dart';
 import '../../features/stats/domain/use_cases/compute_stats.dart';
 import '../../features/settings/application/settings_cubit.dart';
+import '../../features/reminders/application/reminders_cubit.dart';
+import '../../features/reminders/data/repositories/reminders_repository_impl.dart';
+import '../../features/reminders/domain/repositories/reminders_repository.dart';
 
 final GetIt sl = GetIt.instance;
 
@@ -31,6 +35,7 @@ Future<void> configureDependencies() async {
   // --- core / infrastructure ---
   final prefs = await SharedPreferences.getInstance();
   sl.registerSingleton<KeyValueStore>(SharedPrefsStore(prefs));
+  sl.registerSingleton<NotificationService>(NotificationService.instance);
 
   // --- data sources ---
   sl.registerLazySingleton(() => EntriesLocalDataSource(sl()));
@@ -41,6 +46,8 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton<EntriesRepository>(() => EntriesRepositoryImpl(sl()));
   sl.registerLazySingleton<EmotionCatalogRepository>(
       () => EmotionCatalogRepositoryImpl(sl()));
+  sl.registerLazySingleton<RemindersRepository>(
+      () => RemindersRepositoryImpl(sl()));
 
   // --- use cases ---
   sl.registerLazySingleton(() => SaveEntry(sl()));
@@ -57,6 +64,10 @@ Future<void> configureDependencies() async {
     exportCsv: sl(),
     importCsv: sl(),
     deleteAll: sl(),
+  ));
+  sl.registerSingleton<RemindersCubit>(RemindersCubit(
+    repo: sl(),
+    notifier: sl(),
   ));
 
   // --- per-screen view models (factories; all share the EntriesCubit singleton) ---

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../core/utils/date_formatter.dart';
 import '../../entries/application/entries_cubit.dart';
 import '../../entries/application/entries_state.dart';
 import '../../entries/domain/entities/mood_entry.dart';
@@ -65,13 +64,13 @@ class HistoryCubit extends Cubit<HistoryState> {
   }
 
   List<HistoryGroup> _group(List<MoodEntry> entries) {
-    final map = <String, List<MoodEntry>>{};
+    final map = <DateTime, List<MoodEntry>>{};
     for (final e in entries) {
-      map.putIfAbsent(DateFormatter.dayLabel(e.timestamp), () => []).add(e);
+      final key = DateTime(e.timestamp.year, e.timestamp.month, e.timestamp.day);
+      map.putIfAbsent(key, () => []).add(e);
     }
-    return map.entries
-        .map((kv) => HistoryGroup(label: kv.key, entries: kv.value))
-        .toList();
+    final keys = map.keys.toList()..sort((a, b) => b.compareTo(a));
+    return [for (final k in keys) HistoryGroup(date: k, entries: map[k]!)];
   }
 
   @override

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_strings.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 import '../../features/record/presentation/record_page.dart';
@@ -38,6 +39,7 @@ class _BottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final s = context.s;
     return Container(
       decoration: BoxDecoration(
         color: c.surface,
@@ -52,19 +54,19 @@ class _BottomNav extends StatelessWidget {
             children: [
               _NavItem(
                 icon: Icons.edit_note,
-                label: 'Record',
+                label: s.t('nav.record'),
                 active: current == 0,
                 onTap: () => onTap(0),
               ),
               _NavItem(
                 icon: Icons.history,
-                label: 'History',
+                label: s.t('nav.history'),
                 active: current == 1,
                 onTap: () => onTap(1),
               ),
               _NavItem(
                 icon: Icons.leaderboard,
-                label: 'Stats',
+                label: s.t('nav.stats'),
                 active: current == 2,
                 onTap: () => onTap(2),
               ),

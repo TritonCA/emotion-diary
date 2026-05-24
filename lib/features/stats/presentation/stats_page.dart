@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/di/injector.dart';
+import '../../../core/l10n/app_strings.dart';
+import '../../../core/l10n/emotion_translations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_top_bar.dart';
 import '../../../core/widgets/emotion_icons.dart';
+import '../../settings/application/settings_cubit.dart';
 import '../application/stats_cubit.dart';
 import '../application/stats_state.dart';
 import '../domain/entities/mood_stats.dart';
@@ -26,15 +29,20 @@ class StatsPage extends StatelessWidget {
 class _StatsView extends StatelessWidget {
   const _StatsView();
 
-  String _catLabel(String id) =>
-      id.isEmpty ? '—' : '${id[0].toUpperCase()}${id.substring(1)}';
-
   IconData _contextIcon(String keyword) {
     final k = keyword.toLowerCase();
-    if (k.contains('work')) return Icons.work_outline;
-    if (k.contains('sleep') || k.contains('bed')) return Icons.bedtime_outlined;
-    if (k.contains('exercise') || k.contains('gym')) return Icons.fitness_center;
-    if (k.contains('meal') || k.contains('food') || k.contains('coffee')) {
+    if (k.contains('work') || k.contains('работ')) return Icons.work_outline;
+    if (k.contains('sleep') || k.contains('bed') || k.contains('сон')) {
+      return Icons.bedtime_outlined;
+    }
+    if (k.contains('exercise') || k.contains('gym') || k.contains('спорт')) {
+      return Icons.fitness_center;
+    }
+    if (k.contains('meal') ||
+        k.contains('food') ||
+        k.contains('coffee') ||
+        k.contains('еда') ||
+        k.contains('кофе')) {
       return Icons.restaurant;
     }
     return Icons.label_outline;
@@ -43,34 +51,36 @@ class _StatsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final s = context.s;
     return Scaffold(
-      appBar: const AppTopBar(title: 'Statistics'),
+      appBar: AppTopBar(title: s.t('stats.title')),
       body: BlocBuilder<StatsCubit, StatsState>(
         builder: (context, state) {
           final cubit = context.read<StatsCubit>();
-          final s = state.stats;
+          final st = state.stats;
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
             children: [
-              _periodSelector(c, state, cubit),
+              _periodSelector(context, c, state, cubit),
               const SizedBox(height: 40),
-              _metricGrid(context, s),
+              _metricGrid(context, st),
               const SizedBox(height: 40),
-              _sectionTitle(c, 'Intensity Trend', trailing: 'Last 7 days'),
+              _sectionTitle(c, s.t('stats.intensity_trend'),
+                  trailing: s.t('stats.last_7_days')),
               const SizedBox(height: 16),
-              IntensityTrendChart(trend: s.trend),
+              IntensityTrendChart(trend: st.trend),
               const SizedBox(height: 40),
-              _sectionTitle(c, 'Frequency'),
+              _sectionTitle(c, s.t('stats.frequency')),
               const SizedBox(height: 16),
-              _frequency(c, s),
+              _frequency(context, c, st),
               const SizedBox(height: 40),
-              _sectionTitle(c, 'Context'),
+              _sectionTitle(c, s.t('stats.context')),
               const SizedBox(height: 16),
-              _context(c, s),
+              _context(c, s, st),
               const SizedBox(height: 40),
-              _sectionTitle(c, 'Emotion Type'),
+              _sectionTitle(c, s.t('stats.emotion_type')),
               const SizedBox(height: 16),
-              EmotionTypeDonut(stats: s),
+              EmotionTypeDonut(stats: st),
             ],
           );
         },
@@ -78,13 +88,15 @@ class _StatsView extends StatelessWidget {
     );
   }
 
-  Widget _periodSelector(AppColors c, StatsState state, StatsCubit cubit) {
+  Widget _periodSelector(
+      BuildContext context, AppColors c, StatsState state, StatsCubit cubit) {
+    final s = context.s;
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
           for (final p in StatsPeriod.values) ...[
-            _periodChip(c, p.label, p == state.period, () => cubit.setPeriod(p)),
+            _periodChip(c, s.t(p.tKey), p == state.period, () => cubit.setPeriod(p)),
             const SizedBox(width: 8),
           ],
         ],
@@ -108,25 +120,27 @@ class _StatsView extends StatelessWidget {
     );
   }
 
-  Widget _metricGrid(BuildContext context, MoodStats s) {
+  Widget _metricGrid(BuildContext context, MoodStats st) {
     final c = context.colors;
+    final s = context.s;
+    final locale = context.watch<SettingsCubit>().state.locale;
     return Column(
       children: [
         Row(
           children: [
             Expanded(
-                child: _metric(c, 'Total entries',
-                    Text('${s.totalEntries}', style: AppTypography.headlineLg(c.primary)))),
+                child: _metric(c, s.t('stats.total_entries'),
+                    Text('${st.totalEntries}', style: AppTypography.headlineLg(c.primary)))),
             const SizedBox(width: 16),
             Expanded(
               child: _metric(
                 c,
-                'Avg Intensity',
+                s.t('stats.avg_intensity'),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.baseline,
                   textBaseline: TextBaseline.alphabetic,
                   children: [
-                    Text('${s.avgIntensity}', style: AppTypography.headlineLg(c.primary)),
+                    Text('${st.avgIntensity}', style: AppTypography.headlineLg(c.primary)),
                     const SizedBox(width: 4),
                     Text('/10', style: AppTypography.labelSm(c.onSurfaceVariant)),
                   ],
@@ -138,7 +152,7 @@ class _StatsView extends StatelessWidget {
         const SizedBox(height: 16),
         _metric(
           c,
-          'Top Emotion',
+          s.t('stats.top_emotion'),
           Row(
             children: [
               Container(
@@ -147,15 +161,18 @@ class _StatsView extends StatelessWidget {
                 decoration: BoxDecoration(
                     color: c.surfaceContainer, shape: BoxShape.circle),
                 child: Icon(
-                  s.topCategoryId == null
+                  st.topCategoryId == null
                       ? Icons.sentiment_neutral
-                      : EmotionIcons.forCategory(s.topCategoryId!),
+                      : EmotionIcons.forCategory(st.topCategoryId!),
                   color: c.primary,
                   size: 18,
                 ),
               ),
               const SizedBox(width: 8),
-              Text(s.topCategoryId == null ? '—' : _catLabel(s.topCategoryId!),
+              Text(
+                  st.topCategoryId == null
+                      ? '—'
+                      : EmotionTranslations.category(locale, st.topCategoryId!),
                   style: AppTypography.headlineMd(c.onSurface)),
             ],
           ),
@@ -197,16 +214,22 @@ class _StatsView extends StatelessWidget {
     );
   }
 
-  Widget _frequency(AppColors c, MoodStats s) {
-    if (s.frequency.isEmpty) {
-      return Text('No data yet', style: AppTypography.bodyMd(c.onSurfaceVariant));
+  Widget _frequency(BuildContext context, AppColors c, MoodStats st) {
+    final s = context.s;
+    final locale = context.watch<SettingsCubit>().state.locale;
+    if (st.frequency.isEmpty) {
+      return Text(s.t('stats.no_data'),
+          style: AppTypography.bodyMd(c.onSurfaceVariant));
     }
     final colors = [c.primary, c.secondary, c.tertiary, c.onSurfaceVariant];
     return Column(
       children: [
-        for (var i = 0; i < s.frequency.length; i++) ...[
-          _freqRow(c, _catLabel(s.frequency[i].categoryId),
-              s.frequency[i].percent, colors[i % colors.length]),
+        for (var i = 0; i < st.frequency.length; i++) ...[
+          _freqRow(
+              c,
+              EmotionTranslations.category(locale, st.frequency[i].categoryId),
+              st.frequency[i].percent,
+              colors[i % colors.length]),
           const SizedBox(height: 24),
         ],
       ],
@@ -238,16 +261,16 @@ class _StatsView extends StatelessWidget {
     );
   }
 
-  Widget _context(AppColors c, MoodStats s) {
-    if (s.context.isEmpty) {
-      return Text('No recurring context found',
+  Widget _context(AppColors c, AppStrings s, MoodStats st) {
+    if (st.context.isEmpty) {
+      return Text(s.t('stats.no_context'),
           style: AppTypography.bodyMd(c.onSurfaceVariant));
     }
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: [
-        for (final item in s.context)
+        for (final item in st.context)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(

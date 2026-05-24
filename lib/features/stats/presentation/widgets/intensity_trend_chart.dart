@@ -1,7 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/l10n/app_locale.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../settings/application/settings_cubit.dart';
 import '../../domain/entities/mood_stats.dart';
+
+const _ruWeekdays = <String, String>{
+  'Mon': 'Пн',
+  'Tue': 'Вт',
+  'Wed': 'Ср',
+  'Thu': 'Чт',
+  'Fri': 'Пт',
+  'Sat': 'Сб',
+  'Sun': 'Вс',
+};
 
 /// Smooth line + gradient fill of average intensity over the last 7 days,
 /// matching the SVG path in the mockup.
@@ -12,6 +25,9 @@ class IntensityTrendChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final locale = context.watch<SettingsCubit>().state.locale;
+    String label(String raw) =>
+        locale == AppLocale.ru ? (_ruWeekdays[raw] ?? raw) : raw;
     return Container(
       height: 224,
       padding: const EdgeInsets.all(16),
@@ -33,7 +49,7 @@ class IntensityTrendChart extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               for (final p in trend)
-                Text(p.label,
+                Text(label(p.label),
                     style: AppTypography.labelSm(c.onSurfaceVariant)
                         .copyWith(fontSize: 10)),
             ],

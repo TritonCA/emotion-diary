@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/l10n/app_strings.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/entities/mood_stats.dart';
@@ -11,10 +12,13 @@ class EmotionTypeDonut extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final s = context.s;
     final focus = stats.positivePercent >= stats.negativePercent &&
             stats.positivePercent >= stats.neutralPercent
-        ? 'Positive'
-        : (stats.negativePercent >= stats.neutralPercent ? 'Negative' : 'Neutral');
+        ? s.t('stats.positive')
+        : (stats.negativePercent >= stats.neutralPercent
+            ? s.t('stats.negative')
+            : s.t('stats.neutral'));
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -42,16 +46,17 @@ class EmotionTypeDonut extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(focus, style: AppTypography.headlineMd(c.primary)),
-                    Text('Focus', style: AppTypography.labelSm(c.onSurfaceVariant)),
+                    Text(s.t('stats.focus'),
+                        style: AppTypography.labelSm(c.onSurfaceVariant)),
                   ],
                 ),
               ),
             ),
           ),
           const SizedBox(height: 24),
-          _legend(c, 'Positive', stats.positivePercent, c.primary),
-          _legend(c, 'Neutral', stats.neutralPercent, c.secondary),
-          _legend(c, 'Negative', stats.negativePercent, c.onSurfaceVariant),
+          _legend(c, s.t('stats.positive'), stats.positivePercent, c.primary),
+          _legend(c, s.t('stats.neutral'), stats.neutralPercent, c.secondary),
+          _legend(c, s.t('stats.negative'), stats.negativePercent, c.onSurfaceVariant),
         ],
       ),
     );

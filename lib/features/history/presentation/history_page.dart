@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/di/injector.dart';
+import '../../../core/l10n/app_strings.dart';
+import '../../../core/l10n/emotion_translations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/utils/date_formatter.dart';
 import '../../../core/widgets/app_top_bar.dart';
+import '../../settings/application/settings_cubit.dart';
 import '../application/history_cubit.dart';
 import '../application/history_state.dart';
 import 'widgets/entry_card.dart';
@@ -23,15 +27,13 @@ class HistoryPage extends StatelessWidget {
 class _HistoryView extends StatelessWidget {
   const _HistoryView();
 
-  String _catLabel(String id) => id.isEmpty
-      ? 'Uncategorized'
-      : '${id[0].toUpperCase()}${id.substring(1)}';
-
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final s = context.s;
+    final locale = context.watch<SettingsCubit>().state.locale;
     return Scaffold(
-      appBar: const AppTopBar(title: 'History'),
+      appBar: AppTopBar(title: s.t('history.title')),
       body: BlocBuilder<HistoryCubit, HistoryState>(
         builder: (context, state) {
           final cubit = context.read<HistoryCubit>();
@@ -47,10 +49,15 @@ class _HistoryView extends StatelessWidget {
               ),
               const SizedBox(height: 40),
               if (state.isEmpty)
-                _emptyState(c)
+                _emptyState(c, s)
               else
                 for (final group in state.groups) ...[
-                  Text(group.label.toUpperCase(),
+                  Text(
+                      DateFormatter.dayLabel(group.date,
+                              locale: locale,
+                              todayLabel: s.t('history.day.today'),
+                              yesterdayLabel: s.t('history.day.yesterday'))
+                          .toUpperCase(),
                       style: AppTypography.labelCaps(c.outline)
                           .copyWith(letterSpacing: 1.5)),
                   const SizedBox(height: 16),
@@ -67,37 +74,40 @@ class _HistoryView extends StatelessWidget {
     );
   }
 
-  Widget _categoryChip(BuildContext context, HistoryState s, HistoryCubit cubit) {
+  Widget _categoryChip(BuildContext context, HistoryState state, HistoryCubit cubit) {
     final c = context.colors;
-    final selected = s.categoryFilter != null;
+    final s = context.s;
+    final locale = context.watch<SettingsCubit>().state.locale;
+    final selected = state.categoryFilter != null;
+    String label(String? id) {
+      if (id == null) return s.t('history.all_categories');
+      if (id.isEmpty) return s.t('history.uncategorized');
+      return EmotionTranslations.category(locale, id);
+    }
+
     return PopupMenuButton<String?>(
       onSelected: (v) => cubit.setCategory(v == '__all__' ? null : v),
       color: c.surfaceContainer,
       itemBuilder: (_) => [
-        const PopupMenuItem(value: '__all__', child: Text('All categories')),
-        for (final id in s.categories)
-          PopupMenuItem(value: id, child: Text(_catLabel(id))),
+        PopupMenuItem(value: '__all__', child: Text(label(null))),
+        for (final id in state.categories)
+          PopupMenuItem(value: id, child: Text(label(id))),
       ],
-      child: _chip(
-        c,
-        label: s.categoryFilter == null
-            ? 'All categories'
-            : _catLabel(s.categoryFilter!),
-        active: selected,
-      ),
+      child: _chip(c, label: label(state.categoryFilter), active: selected),
     );
   }
 
-  Widget _periodChip(BuildContext context, HistoryState s, HistoryCubit cubit) {
+  Widget _periodChip(BuildContext context, HistoryState state, HistoryCubit cubit) {
     final c = context.colors;
+    final s = context.s;
     return PopupMenuButton<HistoryPeriod>(
       onSelected: cubit.setPeriod,
       color: c.surfaceContainer,
       itemBuilder: (_) => [
         for (final p in HistoryPeriod.values)
-          PopupMenuItem(value: p, child: Text(p.label)),
+          PopupMenuItem(value: p, child: Text(s.t(p.tKey))),
       ],
-      child: _chip(c, label: s.period.label, active: false),
+      child: _chip(c, label: s.t(state.period.tKey), active: false),
     );
   }
 
@@ -122,7 +132,7 @@ class _HistoryView extends StatelessWidget {
     );
   }
 
-  Widget _emptyState(AppColors c) {
+  Widget _emptyState(AppColors c, AppStrings s) {
     return Opacity(
       opacity: 0.4,
       child: Column(
@@ -139,8 +149,7 @@ class _HistoryView extends StatelessWidget {
             child: Icon(Icons.edit_note, size: 48, color: c.primary),
           ),
           const SizedBox(height: 16),
-          Text('Your entries will appear here',
-              style: AppTypography.bodyLg(c.outline)),
+          Text(s.t('history.empty'), style: AppTypography.bodyLg(c.outline)),
         ],
       ),
     );

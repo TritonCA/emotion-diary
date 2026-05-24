@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/l10n/app_strings.dart';
+import '../../../../core/l10n/emotion_translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/emotion_icons.dart';
 import '../../../entries/domain/entities/emotion.dart';
 import '../../../entries/domain/entities/emotion_category.dart';
+import '../../../settings/application/settings_cubit.dart';
 
 /// "How are you feeling?" bottom sheet. Level 1: category grid + search.
 /// Level 2: sub-emotion checkboxes with "Select all". Returns chosen emotions.
@@ -90,27 +94,38 @@ class _EmotionPickerSheetState extends State<_EmotionPickerSheet> {
   }
 
   Widget _level1(AppColors c) {
+    final locale = context.watch<SettingsCubit>().state.locale;
+    final s = context.s;
     final filter = _query.trim().toLowerCase();
-    final visible = filter.isEmpty
-        ? widget.catalog
-        : widget.catalog
-            .where((cat) =>
-                cat.name.toLowerCase().contains(filter) ||
-                cat.emotions.any((e) => e.toLowerCase().contains(filter)))
-            .toList();
+    bool matches(EmotionCategory cat) {
+      final catName = EmotionTranslations.category(locale, cat.id).toLowerCase();
+      if (catName.contains(filter)) return true;
+      if (cat.name.toLowerCase().contains(filter)) return true;
+      for (final e in cat.emotions) {
+        if (e.toLowerCase().contains(filter)) return true;
+        if (EmotionTranslations.emotion(locale, e).toLowerCase().contains(filter)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    final visible =
+        filter.isEmpty ? widget.catalog : widget.catalog.where(matches).toList();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 8),
-          Text('How are you feeling?', style: AppTypography.headlineLg(c.onSurface)),
+          Text(s.t('picker.how_are_you'),
+              style: AppTypography.headlineLg(c.onSurface)),
           const SizedBox(height: 16),
           TextField(
             onChanged: (v) => setState(() => _query = v),
             style: AppTypography.bodyMd(c.onSurface),
             decoration: InputDecoration(
-              hintText: 'Search emotions...',
+              hintText: s.t('picker.search_hint'),
               hintStyle: AppTypography.bodyMd(c.outline),
               prefixIcon: Icon(Icons.search, color: c.outline, size: 20),
               filled: true,
@@ -153,7 +168,8 @@ class _EmotionPickerSheetState extends State<_EmotionPickerSheet> {
                           Icon(EmotionIcons.forCategory(cat.iconName),
                               color: c.primary, size: 32),
                           const SizedBox(height: 4),
-                          Text(cat.name, style: AppTypography.labelSm(c.onSurface)),
+                          Text(EmotionTranslations.category(locale, cat.id),
+                              style: AppTypography.labelSm(c.onSurface)),
                         ],
                       ),
                     ),
@@ -167,6 +183,8 @@ class _EmotionPickerSheetState extends State<_EmotionPickerSheet> {
   }
 
   Widget _level2(AppColors c, EmotionCategory cat) {
+    final locale = context.watch<SettingsCubit>().state.locale;
+    final s = context.s;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
@@ -178,11 +196,13 @@ class _EmotionPickerSheetState extends State<_EmotionPickerSheet> {
                 onPressed: () => setState(() => _category = null),
                 icon: Icon(Icons.arrow_back, color: c.onSurface),
               ),
-              Text(cat.name, style: AppTypography.headlineMd(c.onSurface)),
+              Text(EmotionTranslations.category(locale, cat.id),
+                  style: AppTypography.headlineMd(c.onSurface)),
               const Spacer(),
               TextButton(
                 onPressed: () => _selectAll(cat),
-                child: Text('Select all', style: AppTypography.labelSm(c.primary)),
+                child: Text(s.t('picker.select_all'),
+                    style: AppTypography.labelSm(c.primary)),
               ),
             ],
           ),
@@ -203,7 +223,8 @@ class _EmotionPickerSheetState extends State<_EmotionPickerSheet> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(e.name, style: AppTypography.labelSm(c.onPrimary)),
+                            Text(EmotionTranslations.emotion(locale, e.name),
+                                style: AppTypography.labelSm(c.onPrimary)),
                             const SizedBox(width: 4),
                             Icon(Icons.close, size: 14, color: c.onPrimary),
                           ],
@@ -232,7 +253,8 @@ class _EmotionPickerSheetState extends State<_EmotionPickerSheet> {
                         child: Row(
                           children: [
                             Expanded(
-                                child: Text(name,
+                                child: Text(
+                                    EmotionTranslations.emotion(locale, name),
                                     style: AppTypography.bodyMd(c.onSurface))),
                             Icon(
                               _selected.containsKey(name)
@@ -264,7 +286,8 @@ class _EmotionPickerSheetState extends State<_EmotionPickerSheet> {
                 ),
                 onPressed: () =>
                     Navigator.of(context).pop(_selected.values.toList()),
-                child: Text('Done', style: AppTypography.headlineMd(c.onPrimary)),
+                child: Text(s.t('common.done'),
+                    style: AppTypography.headlineMd(c.onPrimary)),
               ),
             ),
           ),

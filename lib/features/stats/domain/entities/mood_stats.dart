@@ -2,15 +2,6 @@ import 'package:equatable/equatable.dart';
 
 enum StatsPeriod { week, month, year, all }
 
-extension StatsPeriodLabel on StatsPeriod {
-  String get label => switch (this) {
-        StatsPeriod.week => 'Week',
-        StatsPeriod.month => 'Month',
-        StatsPeriod.year => 'Year',
-        StatsPeriod.all => 'All',
-      };
-}
-
 class FrequencyItem extends Equatable {
   const FrequencyItem(this.categoryId, this.percent);
   final String categoryId;

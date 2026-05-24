@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../l10n/app_strings.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 import '../../features/settings/application/settings_cubit.dart';
@@ -37,14 +38,14 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
               Text(title, style: AppTypography.headlineMd(c.primary).copyWith(fontWeight: FontWeight.w700)),
               const Spacer(),
               IconButton(
-                tooltip: 'Settings',
+                tooltip: context.s.t('top.settings'),
                 icon: Icon(Icons.tune, color: c.onSurfaceVariant, size: 22),
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(builder: (_) => const SettingsPage()),
                 ),
               ),
               IconButton(
-                tooltip: 'Toggle theme',
+                tooltip: context.s.t('top.toggle_theme'),
                 icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode,
                     color: c.onSurfaceVariant, size: 22),
                 onPressed: () => context.read<SettingsCubit>().toggleTheme(),

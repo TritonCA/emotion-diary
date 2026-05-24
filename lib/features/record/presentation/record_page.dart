@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/di/injector.dart';
+import '../../../core/l10n/app_strings.dart';
+import '../../../core/l10n/emotion_translations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../core/widgets/app_top_bar.dart';
 import '../../../core/widgets/section_label.dart';
+import '../../settings/application/settings_cubit.dart';
 import '../application/record_cubit.dart';
 import '../application/record_state.dart';
 import 'widgets/emotion_picker_sheet.dart';
@@ -59,15 +62,16 @@ class _RecordViewState extends State<_RecordView> {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final s = context.s;
     return Scaffold(
-      appBar: const AppTopBar(title: 'Feelings'),
+      appBar: AppTopBar(title: s.t('record.title')),
       body: BlocConsumer<RecordCubit, RecordState>(
         listenWhen: (a, b) => a.savedTick != b.savedTick,
         listener: (context, state) {
           _triggerCtrl.clear();
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
-            ..showSnackBar(const SnackBar(content: Text('Entry saved')));
+            ..showSnackBar(SnackBar(content: Text(context.s.t('record.saved'))));
         },
         builder: (context, state) {
           final cubit = context.read<RecordCubit>();
@@ -76,20 +80,21 @@ class _RecordViewState extends State<_RecordView> {
             children: [
               _dateCard(context, state),
               const SizedBox(height: 40),
-              const SectionLabel('Current Emotions'),
+              SectionLabel(s.t('record.current_emotions')),
               const SizedBox(height: 16),
               _emotionsSection(context, state, cubit),
               const SizedBox(height: 40),
               _intensityCard(context, state, cubit),
               const SizedBox(height: 40),
-              const SectionLabel('What happened?'),
+              SectionLabel(s.t('record.what_happened')),
               const SizedBox(height: 16),
-              _triggerField(c, cubit),
+              _triggerField(context, c, cubit),
               const SizedBox(height: 40),
-              _saveButton(c, state, cubit),
+              _saveButton(context, c, state, cubit),
               const SizedBox(height: 12),
               Center(
-                child: Text('History', style: AppTypography.labelSm(c.onSurfaceVariant)),
+                child: Text(s.t('record.history_footer'),
+                    style: AppTypography.labelSm(c.onSurfaceVariant)),
               ),
             ],
           );
@@ -100,6 +105,7 @@ class _RecordViewState extends State<_RecordView> {
 
   Widget _dateCard(BuildContext context, RecordState s) {
     final c = context.colors;
+    final locale = context.watch<SettingsCubit>().state.locale;
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: () => _pickDateTime(context, s),
@@ -114,7 +120,10 @@ class _RecordViewState extends State<_RecordView> {
           children: [
             Icon(Icons.event, color: c.onSurfaceVariant),
             const SizedBox(width: 8),
-            Text(s.isNow ? 'Now' : DateFormatter.fullDate(s.timestamp),
+            Text(
+                s.isNow
+                    ? context.s.t('common.now')
+                    : DateFormatter.fullDate(s.timestamp, locale: locale),
                 style: AppTypography.bodyLg(c.onSurface)),
             const Spacer(),
             Icon(Icons.chevron_right, color: c.outline),
@@ -126,6 +135,7 @@ class _RecordViewState extends State<_RecordView> {
 
   Widget _emotionsSection(BuildContext context, RecordState s, RecordCubit cubit) {
     final c = context.colors;
+    final locale = context.watch<SettingsCubit>().state.locale;
     Future<void> openPicker() async {
       final result = await showEmotionPicker(context,
           catalog: s.catalog, initial: s.selected);
@@ -148,7 +158,8 @@ class _RecordViewState extends State<_RecordView> {
             children: [
               Icon(Icons.add_circle_outline, color: c.onSurfaceVariant),
               const SizedBox(width: 8),
-              Text('Add emotion', style: AppTypography.bodyMd(c.onSurfaceVariant)),
+              Text(context.s.t('record.add_emotion'),
+                  style: AppTypography.bodyMd(c.onSurfaceVariant)),
             ],
           ),
         ),
@@ -170,7 +181,8 @@ class _RecordViewState extends State<_RecordView> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(e.name, style: AppTypography.bodyMd(c.onSurface)),
+                Text(EmotionTranslations.emotion(locale, e.name),
+                    style: AppTypography.bodyMd(c.onSurface)),
                 const SizedBox(width: 8),
                 GestureDetector(
                   onTap: () => cubit.removeEmotion(e),
@@ -211,7 +223,7 @@ class _RecordViewState extends State<_RecordView> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const SectionLabel('Intensity'),
+              SectionLabel(context.s.t('record.intensity')),
               Text('${s.intensity}', style: AppTypography.display(c.primary)),
             ],
           ),
@@ -227,8 +239,10 @@ class _RecordViewState extends State<_RecordView> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Mild', style: AppTypography.labelSm(c.outline)),
-              Text('Intense', style: AppTypography.labelSm(c.outline)),
+              Text(context.s.t('record.mild'),
+                  style: AppTypography.labelSm(c.outline)),
+              Text(context.s.t('record.intense'),
+                  style: AppTypography.labelSm(c.outline)),
             ],
           ),
         ],
@@ -236,7 +250,7 @@ class _RecordViewState extends State<_RecordView> {
     );
   }
 
-  Widget _triggerField(AppColors c, RecordCubit cubit) {
+  Widget _triggerField(BuildContext context, AppColors c, RecordCubit cubit) {
     return TextField(
       controller: _triggerCtrl,
       onChanged: cubit.setTrigger,
@@ -244,7 +258,7 @@ class _RecordViewState extends State<_RecordView> {
       maxLines: 8,
       style: AppTypography.bodyMd(c.onSurface),
       decoration: InputDecoration(
-        hintText: 'The context or trigger...',
+        hintText: context.s.t('record.trigger_hint'),
         hintStyle: AppTypography.bodyMd(c.outline),
         filled: true,
         fillColor: c.surface,
@@ -265,7 +279,8 @@ class _RecordViewState extends State<_RecordView> {
     );
   }
 
-  Widget _saveButton(AppColors c, RecordState s, RecordCubit cubit) {
+  Widget _saveButton(
+      BuildContext context, AppColors c, RecordState s, RecordCubit cubit) {
     return SizedBox(
       width: double.infinity,
       child: FilledButton(
@@ -276,7 +291,8 @@ class _RecordViewState extends State<_RecordView> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(99)),
         ),
         onPressed: s.saving ? null : cubit.save,
-        child: Text('Save Entry', style: AppTypography.headlineMd(c.onPrimary)),
+        child: Text(context.s.t('record.save_entry'),
+            style: AppTypography.headlineMd(c.onPrimary)),
       ),
     );
   }
