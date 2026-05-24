@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android Auto Backup rules (API 23..30 / fullBackupContent).
+  Includes app SharedPreferences, internal files, and databases so a user's
+  mood entries are restored after reinstall when Google Auto Backup is on.
+-->
+<full-backup-content>
+    <include domain="sharedpref" path="." />
+    <include domain="file" path="." />
+    <include domain="database" path="." />
+</full-backup-content>
